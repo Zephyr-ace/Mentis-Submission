@@ -73,11 +73,11 @@ class VectorDB:
                     if vector_configs:
                         create_args['vector_config'] = vector_configs
                     
-                    # Add multi-tenancy if enabled
-                    if config.get('multi_tenant', True):
-                        create_args['multi_tenancy_config'] = (
-                            wvc.config.Configure.multi_tenancy(enabled=True)
-                        )
+                    # Multi-tenancy - disabled for now to avoid errors
+                    # Temporarily override the configuration to ensure all collections have multi-tenancy disabled
+                    create_args['multi_tenancy_config'] = (
+                        wvc.config.Configure.multi_tenancy(enabled=False)
+                    )
                     
                     collections.create(**create_args)
                     
@@ -210,7 +210,8 @@ class VectorDB:
     def _batch_store_instances(self, collection_name: str, instances_data: list):
         """Batch store multiple instances in a single collection."""
         try:
-            collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
+            # Do not use tenants since multi-tenancy is disabled
+            collection = self.client.collections.get(collection_name)
 
             # Prepare all data for batch insert
             batch_objects = []
@@ -302,7 +303,7 @@ class VectorDB:
 
     def vector_search(self, collection_name, query, vector_name, limit=10):
         """Generic vector search method"""
-        collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
+        collection = self.client.collections.get(collection_name)
         query_embedding = self.embedder.embed_text(query)
         
         response = collection.query.near_vector(
@@ -315,7 +316,7 @@ class VectorDB:
     
     def text_search(self, collection_name, query, limit=10) -> list:
         """Generic text search method using BM25 search"""
-        collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
+        collection = self.client.collections.get(collection_name)
         
         # Use BM25 search for text search
         response = collection.query.bm25(
@@ -329,7 +330,7 @@ class VectorDB:
         """Generic text search method using BM25 search on specific fields.
         Returns a list of tuples (model, score).
         """
-        collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
+        collection = self.client.collections.get(collection_name)
         
         # Use BM25 search for text search on specific fields (field_names)
         response = collection.query.bm25(
@@ -362,7 +363,7 @@ class VectorDB:
 
     def hybrid_search(self, collection_name: str, query: str, vector_field: str, text_fields: list[str], alpha: float = 0.5, limit: int = 8, min_score: float = 0.0) -> list[tuple[BaseModel, float]]:
         """Weaviate's built-in hybrid search combining vector similarity and BM25 text search"""
-        collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
+        collection = self.client.collections.get(collection_name)
         query_embedding = self.embedder.embed_text(query)
         
         response = collection.query.hybrid(
@@ -479,9 +480,9 @@ class VectorDB:
         # Get the collection name from the model's weaviate config
         config = input_model._weaviate_config
         collection_name = config['collection_name']
-        
-        # Get the collection with tenant
-        collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
+
+        # Get the collection without tenant since multi-tenancy is disabled
+        collection = self.client.collections.get(collection_name)
         
         # Extract properties from the input model
         properties = self._extract_model_properties(input_model, subcollections_to_exclude=config.get('subcollections', {}))
@@ -526,7 +527,7 @@ class VectorDB:
         
     def get_all_objects(self, collection_name: str) -> list[BaseModel]:
         """Retrieve all objects from a collection as a list of Pydantic models."""
-        collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
+        collection = self.client.collections.get(collection_name)
 
         objects = []
         for item in collection.iterator():
@@ -561,51 +562,51 @@ class VectorDB:
     def get_connected_objects(self, object_ids: list[str]) -> list[BaseModel]:
         """
         Get all objects connected to the given object IDs.
-        
+
         Args:
             object_ids: List of object IDs to find connections for
-            
+
         Returns:
             List of Objects connected to the given IDs
         """
-        
+
         if not object_ids:
             return []
-            
+
         # First, find all connections involving the given object_ids
-        connection_collection = self.client.collections.get("Connection").with_tenant(self.user_id)
+        connection_collection = self.client.collections.get("Connection")
         all_connections_response = connection_collection.query.fetch_objects(limit=10000)
-        
+
         # Collect all connected object IDs
         connected_object_ids = set()
-        
+
         for obj in all_connections_response.objects:
             properties = obj.properties
             source_id = properties.get('source_id')
             target_id = properties.get('target_id')
-            
+
             # If source_id is in our input list, add target_id to connected objects
             if source_id in object_ids:
                 connected_object_ids.add(target_id)
-            # If target_id is in our input list, add source_id to connected objects  
+            # If target_id is in our input list, add source_id to connected objects
             if target_id in object_ids:
                 connected_object_ids.add(source_id)
-        
+
         # Now fetch the actual objects from all collections
         results = []
         seen_object_ids = set()
-        
+
         # Get all collection names from the discovered collections
         from core.schema_generator import discover_collections_in_module
         import config.classes as classes
         collection_configs = discover_collections_in_module(classes)
-        
+
         for collection_name in collection_configs.keys():
             if collection_name == "Connection":  # Skip connections themselves
                 continue
-                
+
             try:
-                collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
+                collection = self.client.collections.get(collection_name)
                 collection_objects = collection.query.fetch_objects(limit=10000)
                 
                 for obj in collection_objects.objects:
