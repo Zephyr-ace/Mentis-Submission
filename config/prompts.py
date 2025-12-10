@@ -1,3 +1,16 @@
+# agentic_rag
+from config.classes import RAGdecision
+
+promptRagDecision = ("""
+Given the user's message, decide the most suitable retrieval system to retrieve context to respond: 
+-Simple RAG: Use for basic text retrieval with minimal processing.
+-Summary RAG: Use for queries needing better semantic preservation and context.
+-Graph RAG: Use for complex queries involving entities like events, people, emotions, achievements, etc.
+Choose the best-suited RAG system for this message: 
+""")
+
+
+
 # summaryRag
 promptSummarize = ("""
 Summarize the following diary entry into concise bullet points, capturing the main events, key emotions, significant reflections, and important people mentioned. Diary Entry:
