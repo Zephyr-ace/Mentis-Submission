@@ -260,10 +260,34 @@ class Encoder:
         try:
             with VectorDB() as db:
                 # Clear existing collections before storing new data
-                collections = [c.name for c in db.client.collections.list_all()]
-                for collection_name in collections:
-                    db.client.collections.delete(collection_name)
-                
+                try:
+                    # Handle different formats for collection list
+                    collections = db.client.collections.list_all()
+
+                    # Extract collection names regardless of the returned format
+                    if isinstance(collections, list):
+                        # Handle list format (older API versions)
+                        if collections and hasattr(collections[0], 'name'):
+                            collection_names = [c.name for c in collections]
+                        else:
+                            collection_names = [str(c) for c in collections]
+                    elif isinstance(collections, dict):
+                        # Handle dictionary format (newer API versions)
+                        collection_names = list(collections.keys())
+                    else:
+                        # Fallback for other formats
+                        collection_names = [str(collections)]
+
+                    # Delete all collections
+                    for collection_name in collection_names:
+                        try:
+                            db.client.collections.delete(collection_name)
+                        except Exception as delete_err:
+                            print(f"⚠️ Failed to delete collection {collection_name}: {delete_err}")
+                except Exception as list_err:
+                    print(f"⚠️ Failed to list collections: {list_err}")
+
+                # Store chunks
                 db.store_chunks(chunks)
         except Exception as e:
             print(f"❌ Failed to store in Weaviate: {e}")
@@ -281,7 +305,7 @@ class Encoder:
             graph_processor.merge_chunk_with_global_graph(chunk)
             print(f"[✓] Merged chunk {i}/{len(chunks)}")
 
-    def encode(self, diary_text: str, cache_file: str = "data/processed_diary.json", batch_size: int | None = 10, store: bool = False) -> list[Chunk]:
+    def encode(self, diary_text: str, cache_file: str = "data/processed_diary.json", batch_size: int | None = 10, store: bool = True) -> list[Chunk]:
         cache_path = Path(cache_file)
         cache_file_stage_two = str(cache_path.parent / f"{cache_path.stem}_stage_two.json")
 
