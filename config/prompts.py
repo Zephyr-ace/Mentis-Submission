@@ -3,7 +3,8 @@ promptSummarize = ("""
 Summarize the following diary entry into concise bullet points, capturing the main events, key emotions, significant reflections, and important people mentioned. Diary Entry:
 """)
 
-
+promptQueryRewrite = ("""Rewrite the user query to a clear, retrieval‑friendly, semantically precise version that better captures the user’s intent for information retrieval.
+User query:""")
 
 
 
@@ -14,36 +15,29 @@ Summarize the following diary entry into concise bullet points, capturing the ma
 
 
 promptQueryRewriteAndClassify = ("""
-Task: For each user query, generate 1-3 rewritten search queries with their categories.
+For the user message, identify and rewrite multiple queries that would provide helpful context for a response. 
+Each rewritten query should be clear, retrieval‑friendly, 
+and categorized based on the following categories: 
 
-Instructions:
-1. Rewrite the query to be more searchable (specific terms, synonyms, context)
-2. Classify each rewritten query by its diary object category
-3. Different queries should target different aspects/categories
-4. Keep original intent while making searchable
+-Event
+-Person
+-ThoughtReflection 
+-Emotion
+-Problem
+-Achievement
+-FutureIntention
 
-Available Categories:
-- Event: Past activities, actions, happenings
-- Person: People mentioned, relationships
-- ThoughtReflection: Opinions, insights, reflections  
-- Emotion: Feelings, emotional states
-- Problem: Issues, concerns, obstacles
-- Achievement: Accomplishments, successes
-- FutureIntention: Plans, goals, intentions
+User message: "<USER_MESSAGE>"
+Rewritten queries and categories:""")
 
-Examples:
-"How do I feel about work?" → [("work job stress feelings emotions", "Emotion"), ("work career thoughts opinions", "ThoughtReflection")]
-"What happened with Mom?" → [("mother mom conversation interaction", "Event"), ("mother mom relationship", "Person")]
 
-Return format: [("rewritten_query", "Category"), ("rewritten_query", "Category")]
 
-User Query:
+
+promptFilterResults = ("""From the retrieved results, filter and keep only the ones that provide useful context for responding to the user's message. Exclude results that are not relevant to the context.
+users message: "<USER_MESSAGE>"
+Retrieved results: "<RETRIEVED_RESULTS>"
+Filtered context results:
 """)
-
-
-
-
-
 
 
 

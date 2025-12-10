@@ -1,6 +1,6 @@
 from core.llm import LLM_OA
-from config.classes import QueryRewriteAndClassification
-from config.prompts import promptQueryRewriteAndClassify
+from config.classes import QueriesAndClassification, FilteredResults
+from config.prompts import promptQueryRewriteAndClassify, promptFilterResults
 from core.vector_db import VectorDB
 from pydantic import BaseModel
 import os
@@ -26,29 +26,67 @@ class Retriever:
         
         # Step 1: Generate rewritten queries with classifications in one call
         result = self.llm.generate_structured(
-            prompt=promptQueryRewriteAndClassify + user_prompt,
-            desired_output_format=QueryRewriteAndClassification
+            prompt=promptQueryRewriteAndClassify.replace("<USER_MESSAGE>", user_prompt),
+            desired_output_format=QueriesAndClassification
         )
         
         query_pairs = [(item.rewritten_query, item.query_category) for item in result.items]
         with VectorDB(user_id=self.user_id) as db:
+
             # Step 2: Search in parallel with score threshold
             categoric_search_results = db.parallel_hybrid_search(query_pairs, min_score=min_score)
 
-            # Step 3: Get connected objects for all found objects
-            all_object_ids = []
+            # Step 3 filter results
+            # Convert categoric_search_results to a JSON-friendly string representation
+            results_str = ""
             for category, results in categoric_search_results.items():
+                results_str += f"Category: {category}\n"
+                for model_instance, score in results:
+                    # Extract relevant attributes from the model instance
+                    if hasattr(model_instance, 'title') and hasattr(model_instance, 'description'):
+                        results_str += f"- {model_instance.title}: {model_instance.description} (Score: {score:.2f})\n"
+                    elif hasattr(model_instance, 'name') and hasattr(model_instance, 'description'):
+                        results_str += f"- {model_instance.name}: {model_instance.description} (Score: {score:.2f})\n"
+                    elif hasattr(model_instance, 'content'):
+                        results_str += f"- {model_instance.content} (Score: {score:.2f})\n"
+                    else:
+                        results_str += f"- {str(model_instance)} (Score: {score:.2f})\n"
+
+            filtered_results = self.llm.generate_structured(
+                prompt = promptFilterResults.replace("<USER_MESSAGE>", user_prompt).replace("<RETRIEVED_RESULTS>", results_str),
+                desired_output_format = FilteredResults
+            )
+
+            # Step 4: Get connected objects for all found objects
+            # Create a filtered version of categoric_search_results based on filtered_results.relevant_results
+            filtered_categoric_results = {}
+
+            # Create a map of IDs to keep from the filtered results
+            relevant_ids = set()
+            for result_id in filtered_results.relevant_results:
+                relevant_ids.add(result_id)
+
+            # Filter the original categoric_search_results to keep only relevant results
+            for category, results in categoric_search_results.items():
+                filtered_categoric_results[category] = []
+                for model_instance, score in results:
+                    if model_instance.object_id in relevant_ids:
+                        filtered_categoric_results[category].append((model_instance, score))
+
+            # Now use the filtered results to get connected objects
+            all_object_ids = []
+            for category, results in filtered_categoric_results.items():
                 for model_instance, score in results:
                     all_object_ids.append(model_instance.object_id)
             
-            print(f"🔍 Found {len(all_object_ids)} objects to check for connections: {all_object_ids[:3]}...")
+            print(f"Found {len(all_object_ids)} objects to check for connections: {all_object_ids[:3]}...")
             
-            # Step 4: Fetch connected objects
+            # Step 5: Fetch connected objects
             connected_objects = db.get_connected_objects(all_object_ids)
-            print(f"🔗 Found connections for {len(connected_objects)} objects")
+            print(f"Found connections for {len(connected_objects)} objects")
         
-        # Step 5: Merge connected objects into categoric results
-        enhanced_results = self._merge_connected_objects(categoric_search_results, connected_objects)
+        # Step 6: Merge connected objects into filtered categoric results
+        enhanced_results = self._merge_connected_objects(filtered_categoric_results, connected_objects)
 
         # Return enhanced format with debug info
         return {

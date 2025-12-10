@@ -53,8 +53,12 @@ class QueryRewriteItem(BaseModel):
     rewritten_query: str = Field(..., description="Rewritten query")
     query_category: str = Field(..., description="Query category")
 
-class QueryRewriteAndClassification(BaseModel):
-    items: list[QueryRewriteItem] = Field(..., description="List of rewritten queries with their categories")
+class QueriesAndClassification(BaseModel):
+    items: list[QueryRewriteItem] = Field(..., description="Queries with their categories")
+
+
+class FilteredResults(BaseModel):
+    relevant_results: list[str] = Field(..., description="Relevant results")
 
 
 # Encoder
