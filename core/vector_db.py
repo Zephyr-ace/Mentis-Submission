@@ -132,18 +132,34 @@ class VectorDB:
     def _create_tenant(self):
         """Create tenant for this user if it doesn't exist"""
         collections = self.client.collections
-        
+
         # Get all registered collection names dynamically
         discovered_collections = discover_collections_in_module(classes)
-        
+
         for collection_name in discovered_collections.keys():
             try:
                 collection = collections.get(collection_name)
-                
+
                 # Check if tenant exists
                 existing_tenants = collection.tenants.get()
-                tenant_names = [tenant.name if hasattr(tenant, 'name') else tenant for tenant in existing_tenants]
-                
+                tenant_names = []
+
+                # Handle different return formats from Weaviate API
+                if isinstance(existing_tenants, dict):
+                    # Dictionary format (newer API versions)
+                    tenant_names = list(existing_tenants.keys())
+                elif isinstance(existing_tenants, list):
+                    # List format (older API versions)
+                    for tenant in existing_tenants:
+                        if isinstance(tenant, str):
+                            tenant_names.append(tenant)
+                        elif hasattr(tenant, 'name'):
+                            tenant_names.append(tenant.name)
+                        else:
+                            # Fallback for unexpected formats
+                            tenant_names.append(str(tenant))
+
+                # Create tenant if it doesn't exist
                 if self.user_id not in tenant_names:
                     collection.tenants.create([wvc.tenants.Tenant(name=self.user_id)])
             except Exception as e:
@@ -151,96 +167,123 @@ class VectorDB:
 
     def store_chunks(self, chunks):
         """Store chunks and their subcategories using batch operations for better performance."""
-        
+
         # Group all data by collection for batch processing
         collection_data = {}  # {collection_name: [(instance, parent_id), ...]}
-        
+
         for chunk in chunks:
-            # Add main chunk
-            chunk_config = chunk._weaviate_config
-            chunk_collection = chunk_config['collection_name']
-            
-            if chunk_collection not in collection_data:
-                collection_data[chunk_collection] = []
-            collection_data[chunk_collection].append((chunk, None))
-            
-            # Add subcollection items
-            subcollections = chunk_config.get('subcollections', {})
-            for attr_name, collection_name in subcollections.items():
-                items = getattr(chunk, attr_name, []) or []
-                
-                if collection_name not in collection_data:
-                    collection_data[collection_name] = []
-                
-                for item in items:
-                    collection_data[collection_name].append((item, chunk.chunk_id))
-        
+            try:
+                # Add main chunk
+                chunk_config = chunk._weaviate_config
+                chunk_collection = chunk_config['collection_name']
+
+                if chunk_collection not in collection_data:
+                    collection_data[chunk_collection] = []
+                collection_data[chunk_collection].append((chunk, None))
+
+                # Add subcollection items
+                subcollections = chunk_config.get('subcollections', {})
+                for attr_name, collection_name in subcollections.items():
+                    items = getattr(chunk, attr_name, []) or []
+
+                    # Skip if items is not a list
+                    if isinstance(items, str):
+                        continue
+
+                    if collection_name not in collection_data:
+                        collection_data[collection_name] = []
+
+                    for item in items:
+                        if hasattr(item, '_weaviate_config'):
+                            collection_data[collection_name].append((item, chunk.chunk_id))
+            except Exception as e:
+                print(f"⚠️ Error processing chunk: {e}")
+
         # Batch process each collection
         for collection_name, instances_data in collection_data.items():
             if instances_data:
-                self._batch_store_instances(collection_name, instances_data)
+                try:
+                    self._batch_store_instances(collection_name, instances_data)
+                except Exception as e:
+                    print(f"⚠️ Error batch storing data for collection {collection_name}: {e}")
     
     def _batch_store_instances(self, collection_name: str, instances_data: list):
         """Batch store multiple instances in a single collection."""
-        
-        collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
-        
-        # Prepare all data for batch insert
-        batch_objects = []
-        texts_to_embed = {}  # {unique_key: text} for batch embedding
-        embedding_map = {}   # {unique_key: (instance_idx, field_name)}
-        
-        for idx, (instance, parent_id) in enumerate(instances_data):
-            config = instance._weaviate_config
-            
-            # Extract properties
-            properties = self._extract_model_properties(instance, parent_id, config.get('subcollections', {}))
-            
-            # Collect texts that need embedding
-            vector_fields = config.get('vectors', [])
-            instance_embeddings = {}
-            
-            for field_name in vector_fields:
-                field_value = getattr(instance, field_name, None)
-                if field_value is not None:
-                    text_value = str(field_value).strip()
-                    if text_value:  # Only embed non-empty content
-                        # Create unique key for this text
-                        unique_key = f"{idx}_{field_name}"
-                        texts_to_embed[unique_key] = text_value
-                        embedding_map[unique_key] = (idx, field_name)
-            
-            batch_objects.append({
-                'properties': properties,
-                'vectors': instance_embeddings  # Will be filled after batch embedding
-            })
-        
-        # Batch generate embeddings if needed
-        if texts_to_embed:
-            embeddings = self.embedder.embed_text_dict(texts_to_embed)
-            
-            # Map embeddings back to batch objects
-            for unique_key, embedding in embeddings.items():
-                instance_idx, field_name = embedding_map[unique_key]
-                if not batch_objects[instance_idx]['vectors']:
-                    batch_objects[instance_idx]['vectors'] = {}
-                batch_objects[instance_idx]['vectors'][field_name] = embedding
-        
-        # Batch insert all objects
-        
-        # Use Weaviate's batch insert with dynamic batching for optimal performance
-        with collection.batch.dynamic() as batch:
-            for obj in batch_objects:
-                batch.add_object(
-                    properties=obj['properties'],
-                    vector=obj['vectors'] if obj['vectors'] else None
-                )
-        
-        # Check for any errors
-        if collection.batch.failed_objects:
-            print(f"    ⚠️ {len(collection.batch.failed_objects)} objects failed to insert")
-            for failed_obj in collection.batch.failed_objects[:5]:  # Show first 5 errors
-                print(f"      Error: {failed_obj.message}")
+        try:
+            collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
+
+            # Prepare all data for batch insert
+            batch_objects = []
+            texts_to_embed = {}  # {unique_key: text} for batch embedding
+            embedding_map = {}   # {unique_key: (instance_idx, field_name)}
+
+            for idx, (instance, parent_id) in enumerate(instances_data):
+                try:
+                    config = instance._weaviate_config
+
+                    # Extract properties
+                    properties = self._extract_model_properties(instance, parent_id, config.get('subcollections', {}))
+
+                    # Collect texts that need embedding
+                    vector_fields = config.get('vectors', [])
+                    instance_embeddings = {}
+
+                    for field_name in vector_fields:
+                        field_value = getattr(instance, field_name, None)
+                        if field_value is not None:
+                            text_value = str(field_value).strip()
+                            if text_value:  # Only embed non-empty content
+                                # Create unique key for this text
+                                unique_key = f"{idx}_{field_name}"
+                                texts_to_embed[unique_key] = text_value
+                                embedding_map[unique_key] = (idx, field_name)
+
+                    batch_objects.append({
+                        'properties': properties,
+                        'vectors': instance_embeddings  # Will be filled after batch embedding
+                    })
+                except Exception as e:
+                    print(f"⚠️ Error preparing instance for collection {collection_name}: {e}")
+
+            # Batch generate embeddings if needed
+            if texts_to_embed:
+                try:
+                    embeddings = self.embedder.embed_text_dict(texts_to_embed)
+
+                    # Map embeddings back to batch objects
+                    for unique_key, embedding in embeddings.items():
+                        try:
+                            instance_idx, field_name = embedding_map[unique_key]
+                            if 'vectors' not in batch_objects[instance_idx] or batch_objects[instance_idx]['vectors'] is None:
+                                batch_objects[instance_idx]['vectors'] = {}
+                            batch_objects[instance_idx]['vectors'][field_name] = embedding
+                        except Exception as e:
+                            print(f"⚠️ Error mapping embedding: {e}")
+                except Exception as e:
+                    print(f"⚠️ Error generating embeddings: {e}")
+
+            # Batch insert all objects
+            with collection.batch.dynamic() as batch:
+                for obj in batch_objects:
+                    try:
+                        batch.add_object(
+                            properties=obj['properties'],
+                            vector=obj['vectors'] if obj.get('vectors') else None
+                        )
+                    except Exception as e:
+                        print(f"⚠️ Error adding object to batch: {e}")
+
+            # Check for any errors
+            if hasattr(collection.batch, 'failed_objects') and collection.batch.failed_objects:
+                print(f"⚠️ {len(collection.batch.failed_objects)} objects failed to insert")
+                for failed_obj in collection.batch.failed_objects[:5]:  # Show first 5 errors
+                    if hasattr(failed_obj, 'message'):
+                        print(f"⚠️ Error: {failed_obj.message}")
+                    else:
+                        print(f"⚠️ Error with failed object")
+
+        except Exception as e:
+            print(f"❌ Error in batch store for collection {collection_name}: {e}")
     
 
     def delete_user_data(self, delete: bool = True):
