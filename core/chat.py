@@ -23,7 +23,7 @@ class Chat:
         
         # 1. Retrieve from all 3 sources
         main_retrieval_output = self.retriever.retrieve(user_query)
-        main_results = main_retrieval_output.get("results", {}) if isinstance(main_retrieval_output, dict) else main_retrieval_output
+        main_results = main_retrieval_output.get("results", {}) if isinstance(main_retrieval_output, dict) else main_retrieval_output # extract results with safety fallback
         simple_results = self.simple_rag.retrieve(user_query, limit=5)
         summary_results = self.summary_rag.retrieve(user_query, limit=5)
         
