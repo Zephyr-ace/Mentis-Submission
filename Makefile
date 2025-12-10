@@ -8,7 +8,7 @@ help:
 	@echo "  install     - Install project dependencies"
 	@echo "  eval        - Run retrieval evaluation"
 	@echo "  encode-rags - Encode data for SimpleRag and SummaryRag"
-	@echo "  encode-main - Encode data using main encoder"
+	@echo "  encode 	 - Encode data using main encoder"
 	@echo "  chat        - Start chat interface"
 	@echo "  clean       - Clean temporary files"
 
@@ -25,7 +25,7 @@ encode-rags:
 	python -c "from rag.simple_rag import SimpleRag; from rag.summaryRag import SummaryRag; SimpleRag().encode(); SummaryRag().encode()"
 
 # Encode data using main encoder
-encode-main:
+encode:
 	python -c "from core.encoder import Encoder; Encoder().encode(open('data/diary.txt').read())"
 
 # Start chat interface
