@@ -1,0 +1,24 @@
+# note: api keys als env var im jeweiligen code abschnitt beschrieben
+
+# privat
+diary.txt
+processed_diary.json
+processed_diary_stage_two.json
+summarized_diary.json
+cleanup_weaviate.py
+
+
+# api keys/secrets
+.env
+.env.example
+
+
+# aesthetic
+.idea
+.claude
+venv/
+__pycache__/
+
+# testing
+test.py
+classes_test.py
