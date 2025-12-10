@@ -47,6 +47,17 @@ class OutputEval(BaseModel):
     )
 
 
+# agentic RAG
+
+class RAGdecision(BaseModel):
+    simpleRAG: bool
+    summaryRAG: bool
+    graphRAG: bool
+
+
+
+
+
 #retriever
 
 class QueryRewriteItem(BaseModel):
