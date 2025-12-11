@@ -105,30 +105,18 @@ def generate_properties_from_model(model_class: Type[BaseModel]) -> List[wvc.con
     return properties
 
 
-def generate_vector_config(vectors: List[str]) -> Dict[str, Any]:
+def generate_vector_config(vectors: List[str]) -> List[wvc.config.Configure.Vectors]:
     """Generate vector configuration for specified fields."""
     if not vectors:
-        return {}
-
-    # Create default vectorizer config
-    result = {
-        "default": wvc.config.Configure.vectorizer.none(
-            vector_dimensions=1536  # OpenAI embedding dimension
-        )
-    }
-
-    # Add named vectors for each vector field
-    named_vectors = {}
+        return []
+    
+    vector_configs = []
     for vector_field in vectors:
-        named_vectors[vector_field] = wvc.config.Configure.vector.named_vectors(
-            source_vectors=None,  # We'll provide vectors directly on insert
-            vector_dimensions=1536  # OpenAI embedding dimension
+        vector_configs.append(
+            wvc.config.Configure.Vectors.self_provided(name=vector_field)
         )
-
-    if named_vectors:
-        result["vectors"] = named_vectors
-
-    return result
+    
+    return vector_configs
 
 
 def generate_collection_config(model_class: Type[BaseModel]) -> Dict[str, Any]:
