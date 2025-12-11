@@ -73,11 +73,11 @@ class VectorDB:
                     if vector_configs:
                         create_args['vector_config'] = vector_configs
                     
-                    # Multi-tenancy - disabled for now to avoid errors
-                    # Temporarily override the configuration to ensure all collections have multi-tenancy disabled
-                    create_args['multi_tenancy_config'] = (
-                        wvc.config.Configure.multi_tenancy(enabled=False)
-                    )
+                    # Add multi-tenancy if enabled
+                    if config.get('multi_tenant', True):
+                        create_args['multi_tenancy_config'] = (
+                            wvc.config.Configure.multi_tenancy(enabled=True)
+                        )
                     
                     collections.create(**create_args)
                     
@@ -436,7 +436,7 @@ class VectorDB:
         # Get the collection name from the model's weaviate config
         config = input_model._weaviate_config
         collection_name = config['collection_name']
-        
+
         # Get the collection with tenant
         collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
         
@@ -518,49 +518,49 @@ class VectorDB:
     def get_connected_objects(self, object_ids: list[str]) -> list[BaseModel]:
         """
         Get all objects connected to the given object IDs.
-        
+
         Args:
             object_ids: List of object IDs to find connections for
-            
+
         Returns:
             List of Objects connected to the given IDs
         """
-        
+
         if not object_ids:
             return []
-            
+
         # First, find all connections involving the given object_ids
         connection_collection = self.client.collections.get("Connection").with_tenant(self.user_id)
         all_connections_response = connection_collection.query.fetch_objects(limit=10000)
-        
+
         # Collect all connected object IDs
         connected_object_ids = set()
-        
+
         for obj in all_connections_response.objects:
             properties = obj.properties
             source_id = properties.get('source_id')
             target_id = properties.get('target_id')
-            
+
             # If source_id is in our input list, add target_id to connected objects
             if source_id in object_ids:
                 connected_object_ids.add(target_id)
-            # If target_id is in our input list, add source_id to connected objects  
+            # If target_id is in our input list, add source_id to connected objects
             if target_id in object_ids:
                 connected_object_ids.add(source_id)
-        
+
         # Now fetch the actual objects from all collections
         results = []
         seen_object_ids = set()
-        
+
         # Get all collection names from the discovered collections
         from core.schema_generator import discover_collections_in_module
         import config.classes as classes
         collection_configs = discover_collections_in_module(classes)
-        
+
         for collection_name in collection_configs.keys():
             if collection_name == "Connection":  # Skip connections themselves
                 continue
-                
+
             try:
                 collection = self.client.collections.get(collection_name).with_tenant(self.user_id)
                 collection_objects = collection.query.fetch_objects(limit=10000)
