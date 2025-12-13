@@ -41,7 +41,6 @@ class Agent:
         else:
             # Retrieve context and generate answer
             context = self._retrieve(user_prompt)
-
             prompt = finalGenerationPrompt.replace("{user_prompt}", user_prompt).replace("{context}", context)
             answer = self.llm.generate(prompt)
             return answer
