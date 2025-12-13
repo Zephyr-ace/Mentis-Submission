@@ -19,9 +19,15 @@ class Agent:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+        self.close()
 
-    def _answer(self, user_prompt):
+    def close(self):
+        """Release any network clients."""
+        self.llm.close()
+        self.llm_simple.close()
+
+    def answer(self, user_prompt):
+
         rag_necessity = self.llm_simple.generate_structured(
             prompt="Is additional context needed to respond to the users message? users message:" + user_prompt,
             desired_output_format=TrueFalse
@@ -35,7 +41,9 @@ class Agent:
         else:
             # Retrieve context and generate answer
             context = self._retrieve(user_prompt)
-            answer = self.llm.generate(finalGenerationPrompt + context)
+
+            prompt = finalGenerationPrompt.replace("{user_prompt}", user_prompt).replace("{context}", context)
+            answer = self.llm.generate(prompt)
             return answer
 
     def _retrieve(self, user_prompt: str) -> str:
