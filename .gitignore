@@ -26,6 +26,7 @@ classes_test.py
 lab/
 lab.embeddings/
 
-# eval_results
+# eval cache
 eval/results/
+eval/data_samples/
 
