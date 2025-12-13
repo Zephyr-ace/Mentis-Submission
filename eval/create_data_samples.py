@@ -71,7 +71,7 @@ import os
 os.makedirs('data_samples', exist_ok=True)
 
 # Write the data samples to a JSON file with UTF-8 characters preserved
-with open('data_samples/simple_rag_data_samples.json', 'w', encoding='utf-8') as json_file:
+with open('data_samples/simple_rag_data_sample.json', 'w', encoding='utf-8') as json_file:
     json.dump(data_samples, json_file, indent=4, ensure_ascii=False)
 
 print("Data samples have been saved to 'eval/simple_rag_data_samples.json'.")

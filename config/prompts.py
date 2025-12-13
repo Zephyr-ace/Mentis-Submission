@@ -27,8 +27,10 @@ task: Answer the user's message ("{user_prompt}") using the provided context ("{
 
 """
 
+evaluationFinalGenerationPrompt = """
+task: Answer the user's message ("{user_prompt}") using ONLY the provided context ("{context}"). Ensure the response is clear, concise, and directly addresses the user's query. Only use the provided context for your answer.
 
-
+"""
 
 
 

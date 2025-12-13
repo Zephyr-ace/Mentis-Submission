@@ -6,7 +6,7 @@ import os
 
 
 # Load data from the JSON file
-with open('context_recall_data_samples.json', 'r') as file:
+with open('data_samples/simple_rag_data_sample.json', 'r') as file:
     data_samples = json.load(file)
 
 # Create the Dataset from the loaded data
