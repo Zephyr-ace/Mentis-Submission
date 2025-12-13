@@ -20,6 +20,14 @@ promptQueryRewrite = ("""Rewrite the user query to a clear, retrieval‑friendly
 User query:""")
 
 
+# GENERATION
+
+finalGenerationPrompt = """
+task: Answer the user's message ("{user_prompt}") using the provided context ("{context}"). Ensure the response is clear, concise, and directly addresses the user's query. Use the context to supplement and enhance your answer.
+
+"""
+
+
 
 
 
@@ -456,10 +464,3 @@ CRITERIA:
 
 
 
-
-# GENERATION
-
-finalGenerationPrompt = """
-task: answer the users message using the provided context: 
-
-"""
