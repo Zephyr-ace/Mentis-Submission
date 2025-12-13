@@ -26,3 +26,6 @@ classes_test.py
 lab/
 lab.embeddings/
 
+# eval_results
+eval/results/
+
