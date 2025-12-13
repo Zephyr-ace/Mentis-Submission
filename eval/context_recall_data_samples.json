@@ -1,0 +1,22 @@
+{
+  "question": [
+    "What date did Anne Frank go into hiding?",
+    "Who was Anne Frank's first diary entry addressed to?"
+  ],
+  "answer": [
+    "Anne Frank went into hiding on July 6, 1942.",
+    "Anne Frank's first diary entry was addressed to 'Kitty'."
+  ],
+  "contexts": [
+    [
+      "On July 6, 1942, Anne Frank went into hiding with her family to avoid capture by the Nazis. They hid in the secret annex above Otto Frank's office in Amsterdam."
+    ],
+    [
+      "In her first diary entry, Anne Frank writes about her new diary, which she names 'Kitty'. This is the person to whom Anne addresses her thoughts throughout the diary."
+    ]
+  ],
+  "ground_truth": [
+    "Anne Frank went into hiding on July 6, 1942.",
+    "Anne Frank's first diary entry was addressed to 'Kitty'."
+  ]
+}
