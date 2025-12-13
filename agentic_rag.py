@@ -67,22 +67,7 @@ class Agent:
         elif rag_decision.graphRAG:
             print("graph Rag")
             main_retrieval_output = self.retriever.retrieve(user_prompt)
-            main_results = main_retrieval_output.get("results", {}) if isinstance(main_retrieval_output, dict) else main_retrieval_output
-
-            # Convert complex graph results to text format
-            formatted_results = []
-            for category, items in main_results.items():
-                for item, score in items:
-                    if hasattr(item, 'title') and hasattr(item, 'description'):
-                        formatted_results.append(f"{category}: {item.title} - {item.description}")
-                    elif hasattr(item, 'name') and hasattr(item, 'description'):
-                        formatted_results.append(f"{category}: {item.name} - {item.description}")
-                    elif hasattr(item, 'content'):
-                        formatted_results.append(f"{category}: {item.content}")
-                    else:
-                        formatted_results.append(f"{category}: {str(item)}")
-
-            return "\n\n".join(formatted_results)
+            return self.retriever.graph_format_to_text(main_retrieval_output)
         else:
             print("error!!! no RAG system has been picked by the agent")
             return "No relevant information found."

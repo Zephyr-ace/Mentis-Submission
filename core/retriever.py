@@ -11,7 +11,7 @@ import weaviate.classes as wvc
 
 class Retriever:
     def __init__(self):
-        self.llm = LLM_OA("o4-mini")
+        self.llm = LLM_OA("gpt-5-mini")
         self.user_id = os.getenv("USER_ID")
     
     def __enter__(self):
@@ -56,16 +56,7 @@ class Retriever:
         # Step 6: Merge connected objects into filtered categoric results
         enhanced_results = self._merge_connected_objects(filtered_categoric_results, connected_objects)
 
-        # Return enhanced format with debug info
-        return {
-            "results": enhanced_results,
-            "queries_used": [{"query": q, "category": c} for q, c in query_pairs],
-            "debug_info": {
-                "total_objects_searched": len(all_object_ids),
-                "connections_found": len(connected_objects),
-                "original_user_query": user_prompt
-            }
-        }
+        return enhanced_results
 
     def _merge_connected_objects(self, original_results: dict[str, list], connected_objects: list) -> dict[str, list]:
         """
@@ -115,3 +106,41 @@ class Retriever:
                 existing_object_ids.add(connected_obj.object_id)
         
         return enhanced_results
+
+    def graph_format_to_text(self, retrieval_output) -> str:
+        """
+        Convert graph retriever output into plain text for downstream models.
+        Accepts either the full retrieval response (with 'results') or just the
+        results dictionary keyed by category.
+        """
+        if not retrieval_output:
+            return "No relevant information found."
+
+        # The retrieval pipeline returns a dict keyed by category; if a wrapped
+        # response with a "results" key ever arrives, unwrap it, otherwise use
+        # the dict directly.
+        if isinstance(retrieval_output, dict):
+            main_results = retrieval_output.get("results") or retrieval_output
+        else:
+            main_results = retrieval_output
+        if not main_results:
+            return "No relevant information found."
+
+        formatted_results = []
+        for category, items in main_results.items():
+            if not items:
+                continue
+
+            for item_with_score in items:
+                model_instance = item_with_score[0] if isinstance(item_with_score, tuple) else item_with_score
+
+                if hasattr(model_instance, 'title') and hasattr(model_instance, 'description'):
+                    formatted_results.append(f"{category}: {model_instance.title} - {model_instance.description}")
+                elif hasattr(model_instance, 'name') and hasattr(model_instance, 'description'):
+                    formatted_results.append(f"{category}: {model_instance.name} - {model_instance.description}")
+                elif hasattr(model_instance, 'content'):
+                    formatted_results.append(f"{category}: {model_instance.content}")
+                else:
+                    formatted_results.append(f"{category}: {str(model_instance)}")
+
+        return "\n\n".join(formatted_results) if formatted_results else "No relevant information found."
