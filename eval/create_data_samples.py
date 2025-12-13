@@ -6,7 +6,7 @@ from core.retriever import Retriever
 from rag.simple_rag import SimpleRag
 from rag.summaryRag import SummaryRag
 from core.llm import LLM_OA
-from config.prompts import finalGenerationPrompt, promptRagDecision
+from config.prompts import evaluationFinalGenerationPrompt
 
 import json
 
@@ -37,7 +37,7 @@ def summary_rag_retrieve(question):
 def answer(question, context):
     context = "\n\n".join(context)
     llm = LLM_OA("gpt-5.1")
-    prompt = finalGenerationPrompt.replace("{user_prompt}", question).replace("{context}", context)
+    prompt = evaluationFinalGenerationPrompt.replace("{user_prompt}", question).replace("{context}", context)
     answer = llm.generate(prompt)
     return answer
 
@@ -63,7 +63,7 @@ for question, ground_truth in zip(questions, ground_truths):
     # Append data to the corresponding lists
     data_samples["question"].append(question)
     data_samples["answer"].append(generated_answer)
-    data_samples["contexts"].append([context])  # Assuming context is a list of statements
+    data_samples["contexts"].append(context)  # context is already a List[str]
     data_samples["ground_truth"].append(ground_truth)
 
 # Ensure the directory exists

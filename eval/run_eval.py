@@ -12,8 +12,9 @@ with open('data_samples/simple_rag_data_sample.json', 'r') as file:
 # Create the Dataset from the loaded data
 dataset = Dataset.from_dict(data_samples)
 
-# Evaluate the dataset with context recall
+# Evaluate the dataset with context recall and precision
 score = evaluate(dataset, metrics=[context_precision, context_recall])
+
 
 # Convert results to pandas DataFrame and print
 results = score.to_pandas()
