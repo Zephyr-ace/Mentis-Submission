@@ -20,13 +20,29 @@ install:
 eval: 
 	python tests/test_retrieval_eval.py
 
-# Encode data for SimpleRag and SummaryRag
-encode-rags:
-	python -c "from rag.simple_rag import SimpleRag; from rag.summaryRag import SummaryRag; SimpleRag().encode(); SummaryRag().encode()"
+
+
+# Encode data for all RAG-systems
+encode-all:
+	python -c "from core.encoder import Encoder; from rag.simple_rag import SimpleRag; from rag.summaryRag import SummaryRag; SimpleRag().encode(); SummaryRag().encode(); Encoder().encode(store = True, diary_text = open('data/diary.txt').read())"
 
 # Encode data using main encoder
 encode:
 	python -c "from core.encoder import Encoder; Encoder().encode(store = True, diary_text = open('data/diary.txt').read())"
+
+# Encode data for simple RAG
+encode-simple:
+	python -c "from rag.simple_rag import SimpleRag; SimpleRag().encode()"
+
+# Encode data for summary RAG
+encode-summary:
+	python -c "from rag.summaryRag import SummaryRag; SummaryRag().encode()"
+
+
+
+
+
+
 
 # Start chat interface
 chat:
