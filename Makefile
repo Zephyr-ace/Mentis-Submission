@@ -38,18 +38,7 @@ encode-simple:
 encode-summary:
 	python -c "from rag.summaryRag import SummaryRag; SummaryRag().encode()"
 
-
-
-
-
-
-
 # Start chat interface
 chat:
 	python main.py
 
-# Clean temporary files
-clean:
-	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -delete
-	rm -f evaluation/results_*.json
