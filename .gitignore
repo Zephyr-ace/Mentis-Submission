@@ -1,6 +1,7 @@
 # note: api keys als env var im jeweiligen code abschnitt beschrieben
 
 # privat
+data/
 diary.txt
 processed_diary.json
 processed_diary_stage_two.json
