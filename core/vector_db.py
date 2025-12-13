@@ -13,7 +13,7 @@ load_dotenv(override=True) #.env variables
 
 
 class VectorDB:
-    def __init__(self, user_id= None, cluster_url=None, api_key=None):
+    def __init__(self, user_id = None, cluster_url=None, api_key=None):
         if user_id is None:
             user_id = os.getenv("USER_ID")
         if not user_id:
@@ -38,7 +38,6 @@ class VectorDB:
         )
         self._create_schema()
         self._create_tenant()
-    
     def __enter__(self):
         return self
     
@@ -52,7 +51,6 @@ class VectorDB:
     def _create_schema(self):
         """Create Weaviate collections from decorated Pydantic models."""
         collections = self.client.collections
-        
         # Discover all collections from the classes module
         discovered_collections = discover_collections_in_module(classes)
         

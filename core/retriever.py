@@ -36,42 +36,10 @@ class Retriever:
             # Step 2: Search in parallel with score threshold
             categoric_search_results = db.parallel_hybrid_search(query_pairs, min_score=min_score)
 
-            # Step 3 filter results
-            # Convert categoric_search_results to a JSON-friendly string representation
-            results_str = ""
-            for category, results in categoric_search_results.items():
-                results_str += f"Category: {category}\n"
-                for model_instance, score in results:
-                    # Extract relevant attributes from the model instance
-                    if hasattr(model_instance, 'title') and hasattr(model_instance, 'description'):
-                        results_str += f"- {model_instance.title}: {model_instance.description} (Score: {score:.2f})\n"
-                    elif hasattr(model_instance, 'name') and hasattr(model_instance, 'description'):
-                        results_str += f"- {model_instance.name}: {model_instance.description} (Score: {score:.2f})\n"
-                    elif hasattr(model_instance, 'content'):
-                        results_str += f"- {model_instance.content} (Score: {score:.2f})\n"
-                    else:
-                        results_str += f"- {str(model_instance)} (Score: {score:.2f})\n"
-
-            filtered_results = self.llm.generate_structured(
-                prompt = promptFilterResults.replace("<USER_MESSAGE>", user_prompt).replace("<RETRIEVED_RESULTS>", results_str),
-                desired_output_format = FilteredResults
-            )
-
-            # Step 4: Get connected objects for all found objects
-            # Create a filtered version of categoric_search_results based on filtered_results.relevant_results
-            filtered_categoric_results = {}
-
-            # Create a map of IDs to keep from the filtered results
-            relevant_ids = set()
-            for result_id in filtered_results.relevant_results:
-                relevant_ids.add(result_id)
-
-            # Filter the original categoric_search_results to keep only relevant results
-            for category, results in categoric_search_results.items():
-                filtered_categoric_results[category] = []
-                for model_instance, score in results:
-                    if model_instance.object_id in relevant_ids:
-                        filtered_categoric_results[category].append((model_instance, score))
+            # Step 3 filter results (disabled for now; use all search results directly)
+            filtered_categoric_results = {
+                category: results.copy() for category, results in categoric_search_results.items()
+            }
 
             # Now use the filtered results to get connected objects
             all_object_ids = []

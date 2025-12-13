@@ -259,11 +259,12 @@ class Encoder:
     def _store_in_weaviate(self, chunks: list[Chunk]) -> None:
         try:
             with VectorDB() as db:
+
                 # Clear existing collections before storing new data
-                collections = [c.name for c in db.client.collections.list_all()]
-                for collection_name in collections:
-                    db.client.collections.delete(collection_name)
-                
+                #collections = [c.name for c in db.client.collections.list_all()]
+
+                #for collection_name in collections:
+                #    db.client.collections.delete(collection_name)
                 db.store_chunks(chunks)
         except Exception as e:
             print(f"❌ Failed to store in Weaviate: {e}")
@@ -281,7 +282,7 @@ class Encoder:
             graph_processor.merge_chunk_with_global_graph(chunk)
             print(f"[✓] Merged chunk {i}/{len(chunks)}")
 
-    def encode(self, diary_text: str, cache_file: str = "data/processed_diary.json", batch_size: int | None = 10, store: bool = False) -> list[Chunk]:
+    def encode(self, store: bool, diary_text: str, cache_file: str = "data/processed_diary.json", batch_size: int | None = 10) -> list[Chunk]:
         cache_path = Path(cache_file)
         cache_file_stage_two = str(cache_path.parent / f"{cache_path.stem}_stage_two.json")
 

@@ -460,7 +460,6 @@ CRITERIA:
 # GENERATION
 
 finalGenerationPrompt = """
-task: compare the users Question with the provided retrieved diary information. summarize a) which relevant information was retrieved and b) which irrelevant information was retrieved.)
-
+task: answer the users message using the provided context: 
 
 """

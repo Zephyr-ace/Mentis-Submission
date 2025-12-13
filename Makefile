@@ -26,7 +26,7 @@ encode-rags:
 
 # Encode data using main encoder
 encode:
-	python -c "from core.encoder import Encoder; Encoder().encode(open('data/diary.txt').read())"
+	python -c "from core.encoder import Encoder; Encoder().encode(store = True, diary_text = open('data/diary.txt').read())"
 
 # Start chat interface
 chat:

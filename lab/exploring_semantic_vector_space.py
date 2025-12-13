@@ -53,8 +53,16 @@ def compare_vectors(v1, v2): # compare semantic similarity of two words
     return cosine_similarity, distance
 
 
+w1 = np.array(embedder.embed_text("color")).reshape(1, -1)
+w2 = np.array(embedder.embed_text("love")).reshape(1, -1)
+w3 = np.array(embedder.embed_text("math")).reshape(1, -1)
+w4 = np.array(embedder.embed_text("")).reshape(1, -1)
 
 
+
+
+compare_vectors(w1,w2)
+compare_vectors(w3,w4)
 
 
 
